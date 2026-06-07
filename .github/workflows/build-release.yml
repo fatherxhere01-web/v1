@@ -1,0 +1,44 @@
+name: Build and Release APK
+
+on:
+  push:
+    branches: [ "main" ] # Aapka branch name
+  workflow_dispatch:
+
+env:
+  main_project_module: app
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Get version name
+        id: version
+        run: |
+          echo "VERSION_NAME=$(grep 'versionName =' app/build.gradle.kts | awk -F'\"' '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: adbautoenable-${{ steps.version.outputs.VERSION_NAME }}-debug
+          path: app/build/outputs/apk/debug/*.apk
